@@ -12,7 +12,7 @@ const app = express();
 // Middleware
 app.use(bodyParser.json());
 app.use(cors({
-    origin: 'http://localhost:4200',
+    origin: 'https://tag-my-pet.vercel.app/',
     methods: 'GET,POST,PUT,DELETE',
     allowedHeaders: 'Content-Type,Authorization'
 }));
