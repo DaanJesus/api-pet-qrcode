@@ -7,7 +7,6 @@ const authenticateToken = require('../middleware/authtoken');
 
 router.use(authenticateToken);
 
-// Rota para criar um novo Pet
 router.post('/', async (req, res) => {
 
     try {
@@ -29,7 +28,6 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Rota para obter o perfil de um Pet pelo ID
 router.get('/:id', async (req, res) => {
     try {
         const pet = await Pet.findById(req.params.id);
@@ -52,7 +50,6 @@ router.get('/my-pets/:userId', async (req, res) => {
     }
 });
 
-// Rota para obter a raça de um Pet pelo Tipo
 router.get('/breeds/:type', async (req, res) => {
     try {
         const type = req.params.type;
