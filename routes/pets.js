@@ -5,14 +5,12 @@ const Breeds = require('../models/breeds');
 const QRCode = require('qrcode');
 const authenticateToken = require('../middleware/authtoken');
 
-router.use(authenticateToken);
-
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
 
     try {
         let pet = new Pet(req.body);
 
-        const qrCodeUrl = await QRCode.toDataURL(`${process.env.BASE_URL}/pet/${pet._id}`, {
+        const qrCodeUrl = await QRCode.toDataURL(`${process.env.BASE_URL}/${pet._id}`, {
             color: {
                 dark: '#ffffff',
                 light: '#2fb145'
@@ -28,7 +26,8 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/pet-info/:id', async (req, res) => {
+
     try {
         const pet = await Pet.findById(req.params.id);
         if (!pet) {
@@ -40,7 +39,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-router.get('/my-pets/:userId', async (req, res) => {
+router.get('/my-pets/:userId', authenticateToken, async (req, res) => {
 
     try {
         const pets = await Pet.find({ mentor: req.params.userId });
@@ -50,10 +49,10 @@ router.get('/my-pets/:userId', async (req, res) => {
     }
 });
 
-router.get('/breeds/:type', async (req, res) => {
+router.get('/breeds/:type', authenticateToken, async (req, res) => {
     try {
         const type = req.params.type;
-        const breeds = await Breeds.findOne({ type: type }); // Adiciona exec() para garantir que é uma promise
+        const breeds = await Breeds.findOne({ type: type });
 
         if (!breeds) {
             return res.status(404).send('No breeds found for this type');
@@ -65,4 +64,5 @@ router.get('/breeds/:type', async (req, res) => {
         res.status(500).send(error.message);
     }
 });
+
 module.exports = router;
