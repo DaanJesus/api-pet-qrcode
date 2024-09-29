@@ -9,16 +9,23 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key'; // Substitua por
 
 // Registro de usuário
 router.post('/register', async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, tag, photo } = req.body;
 
-    if (!name || !email || !password) {
+    console.log(req.body);
+    
+
+    if (!name || !email || !password || !tag) {
         return res.status(400).json({ message: 'Preencha todos os campos' });
     }
 
     try {
-        // Verifica se o usuário já existe
         const existingUser = await User.findOne({ email });
         if (existingUser) {
+            return res.status(400).json({ message: 'Erro ao cadastrar' });
+        }
+
+        const existingTag = await User.findOne({ tag });
+        if (existingTag) {
             return res.status(400).json({ message: 'Erro ao cadastrar' });
         }
 
@@ -29,7 +36,9 @@ router.post('/register', async (req, res) => {
         const newUser = new User({
             name,
             email,
-            password: hashedPassword
+            password: hashedPassword,
+            tag,
+            photo
         });
 
         await newUser.save();
@@ -67,9 +76,8 @@ router.post('/login', async (req, res) => {
 
         const userWithoutPassword = user.toObject();
         delete userWithoutPassword.password;
-        delete userWithoutPassword.pet;
 
-        res.json({ token, user: userWithoutPassword });
+        res.json({ token, user: userWithoutPassword, message: "Login efetuado com sucesso"});
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Erro no servidor' });

@@ -4,6 +4,7 @@ const cors = require('cors');
 require('dotenv').config();
 const petRoutes = require('./routes/pets');
 const authRoutes = require('./routes/auth');
+const postRoutes = require('./routes/posts');
 // Connect DB
 require('./db/connection');
 
@@ -37,6 +38,7 @@ app.get('/', (req, res) => {
 // Usar as rotas de Pets
 app.use('/api/pets', petRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/post', postRoutes);
 
 // Iniciar o servidor
 const PORT = process.env.PORT || 5000;
