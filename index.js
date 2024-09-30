@@ -13,7 +13,8 @@ const app = express();
 const allowedOrigins = ['https://tag-my-pet.vercel.app', 'http://localhost:4200']
 
 // Middleware
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 const corsOptions = {
     origin: (origin, callback) => {
         if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
