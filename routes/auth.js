@@ -11,9 +11,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key'; // Substitua por
 router.post('/register', async (req, res) => {
     const { name, email, password, tag, photo } = req.body;
 
-    console.log(req.body);
-    
-
     if (!name || !email || !password || !tag) {
         return res.status(400).json({ message: 'Preencha todos os campos' });
     }
