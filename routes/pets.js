@@ -5,21 +5,27 @@ const Breeds = require('../models/breeds');
 const QRCode = require('qrcode');
 const authenticateToken = require('../middleware/authtoken');
 
+const generateQRCode = async (petId) => {
+    return await QRCode.toDataURL(`${process.env.BASE_URL}/${petId}`, {
+        color: {
+            dark: '#ffffff',
+            light: '#2fb145'
+        }
+    });
+};
+
 router.post('/register', authenticateToken, async (req, res) => {
 
     try {
         let pet = new Pet(req.body);
 
-        const qrCodeUrl = await QRCode.toDataURL(`${process.env.BASE_URL}/${pet._id}`, {
-            color: {
-                dark: '#ffffff',
-                light: '#2fb145'
-            }
-        });
-        pet.qrCode = qrCodeUrl;
+        pet.qrCode = await generateQRCode(pet._id);
 
         await pet.save();
-        res.status(201).json(pet);
+
+        const populatedPet = await Pet.findById(pet._id).populate('mentor', '-password');
+        
+        res.status(201).json(populatedPet);
 
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -43,7 +49,6 @@ router.get('/my-pets/:userId', authenticateToken, async (req, res) => {
 
     try {
         const pets = await Pet.find({ mentor: req.params.userId }).populate("mentor", "-password")
-        console.log(pets);
 
         res.status(200).json(pets);
     } catch (error) {
@@ -55,14 +60,11 @@ router.get('/breeds/:type', authenticateToken, async (req, res) => {
 
     try {
         const type = req.params.type;
-        console.log(type);
-
         const breeds = await Breeds.findOne({ type: type });
 
         if (!breeds) {
             return res.status(404).send('No breeds found for this type');
         }
-        console.log(breeds.breeds);
 
         res.json(breeds.breeds);
     } catch (error) {

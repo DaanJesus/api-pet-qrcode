@@ -8,8 +8,6 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
         const postId = req.params.id;
         const userId = req.body.user;
 
-        console.log(postId, userId);
-
         const post = await Post.findById(postId);
 
         if (!post) {
