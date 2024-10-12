@@ -5,7 +5,7 @@ const Breeds = require('../models/breeds');
 const QRCode = require('qrcode');
 const authenticateToken = require('../middleware/authtoken');
 
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/register', authenticateToken, async (req, res) => {
 
     try {
         let pet = new Pet(req.body);
@@ -42,7 +42,9 @@ router.get('/pet-info/:id', async (req, res) => {
 router.get('/my-pets/:userId', authenticateToken, async (req, res) => {
 
     try {
-        const pets = await Pet.find({ mentor: req.params.userId });
+        const pets = await Pet.find({ mentor: req.params.userId }).populate("mentor", "-password")
+        console.log(pets);
+
         res.status(200).json(pets);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -50,13 +52,17 @@ router.get('/my-pets/:userId', authenticateToken, async (req, res) => {
 });
 
 router.get('/breeds/:type', authenticateToken, async (req, res) => {
+
     try {
         const type = req.params.type;
+        console.log(type);
+
         const breeds = await Breeds.findOne({ type: type });
 
         if (!breeds) {
             return res.status(404).send('No breeds found for this type');
         }
+        console.log(breeds.breeds);
 
         res.json(breeds.breeds);
     } catch (error) {

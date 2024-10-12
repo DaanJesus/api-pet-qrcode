@@ -10,10 +10,10 @@ const PostSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    image: {
+    images: [{
         type: String,
         required: false
-    },
+    }],
     hashtag: [{
         type: String,
     }],
@@ -26,7 +26,7 @@ const PostSchema = new mongoose.Schema({
         default: Date.now
     },
     comments: [{
-        user: {
+        author: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'
         },

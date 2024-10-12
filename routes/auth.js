@@ -49,6 +49,7 @@ router.post('/register', async (req, res) => {
 
 // Login de usuário
 router.post('/login', async (req, res) => {
+    
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -69,12 +70,12 @@ router.post('/login', async (req, res) => {
         }
 
         // Gera o token JWT
-        const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '8h' });
+        const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '24h' });
 
         const userWithoutPassword = user.toObject();
         delete userWithoutPassword.password;
 
-        res.json({ token, user: userWithoutPassword, message: "Login efetuado com sucesso"});
+        res.json({ token, user: userWithoutPassword, message: "Login efetuado com sucesso" });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Erro no servidor' });
