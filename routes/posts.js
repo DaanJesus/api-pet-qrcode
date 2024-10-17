@@ -35,7 +35,6 @@ router.post('/:id/comment', authenticateToken, async (req, res) => {
     try {
         const postId = req.params.id; // Obtendo o ID do post da URL
         const { author, text } = req.body; // Extraindo os dados do comentário do corpo da requisição
-
         // Encontrar o post pelo ID
         const post = await Post.findById(postId);
         if (!post) {
@@ -61,21 +60,147 @@ router.post('/:id/comment', authenticateToken, async (req, res) => {
                 return comment;
             });
 
-        
-            console.log(populatedComment);
-            
+        console.log("Comment", populatedComment);
+
+
         res.status(201).json(populatedComment);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
+router.post('/:postId/comment/:commentId/reply', authenticateToken, async (req, res) => {
+    try {
+        const { postId, commentId } = req.params;
+        const { author, text } = req.body;
+
+        // Busca o post pelo ID
+        const post = await Post.findById(postId);
+        if (!post) {
+            return res.status(404).json({ error: 'Post não encontrado' });
+        }
+
+        // Encontra o comentário específico
+        const comment = post.comments.id(commentId);
+        if (!comment) {
+            return res.status(404).json({ error: 'Comentário não encontrado' });
+        }
+
+        // Cria uma nova resposta
+        const newReply = {
+            author: author, // Isso deve ser um ObjectId do usuário
+            text: text,
+            createdAt: new Date(),
+        };
+
+        comment.replies.push(newReply);
+        await post.save();
+
+        // Popula o post novamente para obter a resposta mais recente com autor
+        const populatedPost = await Post.findById(postId)
+            .populate('comments.replies.author', "-password");
+
+        // Encontre a última resposta que foi adicionada
+        const reply = populatedPost.comments
+            .find(c => c._id.equals(commentId)) // Encontrar o comentário
+            .replies[populatedPost.comments.find(c => c._id.equals(commentId)).replies.length - 1]; // Pegar a última resposta
+
+        console.log(reply);
+
+        res.status(201).json({ _id: commentId, reply }); // Retorna a resposta populada
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post('/:postId/comment/:commentId/like', authenticateToken, async (req, res) => {
+    try {
+        const { postId, commentId } = req.params;
+        const { userId, replyId, isComment } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID is required' });
+        }
+
+        // Encontra o post pelo ID
+        const post = await Post.findById(postId);
+        if (!post) {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+
+        // Verifica se é um comentário ou uma resposta
+        let comment = post.comments.id(commentId);
+
+        if (!comment) {
+            // Procura a resposta dentro de cada comentário
+            for (const com of post.comments) {
+                const foundReply = com.replies.id(commentId);
+                if (foundReply) {
+                    comment = com;
+                    replyId = commentId; // Define o replyId como o commentId
+                    break;
+                }
+            }
+        }
+
+        if (!comment) {
+            return res.status(404).json({ error: 'Comment or reply not found' });
+        }
+
+        if (isComment) {
+            // Verifica se o usuário já curtiu o comentário
+            const isLiked = comment.likes && comment.likes.includes(userId);
+
+            if (isLiked) {
+                // Remove a curtida do usuário
+                comment.likes = comment.likes.filter((like) => like.toString() !== userId);
+            } else {
+                // Adiciona a curtida do usuário
+                if (!comment.likes) {
+                    comment.likes = []; // Inicializa se for null
+                }
+                comment.likes.push(userId);
+            }
+        } else {
+            // Se for uma resposta
+            const reply = comment.replies.id(replyId);
+            if (!reply) {
+                return res.status(404).json({ error: 'Reply not found' });
+            }
+
+            // Verifica se o usuário já curtiu a resposta
+            const isLiked = reply.likes && reply.likes.includes(userId);
+
+            if (isLiked) {
+                // Remove a curtida do usuário
+                reply.likes = reply.likes.filter((like) => like.toString() !== userId);
+            } else {
+                // Adiciona a curtida do usuário
+                if (!reply.likes) {
+                    reply.likes = []; // Inicializa se for null
+                }
+                reply.likes.push(userId);
+            }
+        }
+
+        // Salva o post atualizado
+        await post.save();
+
+        // Determina se o usuário curtiu ou descurtiu
+        const liked = isComment ? comment.likes.includes(userId) : comment.replies.id(replyId).likes.includes(userId);
+
+        console.log(liked);
+
+
+        // Retorna o status atualizado de curtida (true = curtiu, false = descurtiu)
+        res.status(200).json(liked);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 router.post('/new', authenticateToken, async (req, res) => {
     try {
-
-        console.log('teste', req.body);
-
         const postData = {
             author: req.body.author,
             content: req.body.content
@@ -112,8 +237,9 @@ router.get('/get', authenticateToken, async (req, res) => {
 
         // Busca os posts com paginação e popula os autores
         const posts = await Post.find()
-            .populate('author')
-            .populate('comments.author')
+            .populate('author', "-password")
+            .populate('comments.author', "-password")
+            .populate('comments.replies.author', "-password")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limitNumber);
@@ -129,6 +255,32 @@ router.get('/get', authenticateToken, async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Rota para buscar todos os posts de um usuário específico
+router.get('/user/:id', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.params.id; // Obtendo o ID do usuário da URL
+
+        // Busca os posts que pertencem ao usuário especificado e onde o campo "image" é maior que zero
+        const posts = await Post.find({
+            author: userId,
+            images: { $gt: 0 } // Condição que filtra posts onde o campo "image" é maior que zero
+        })
+            .populate('author', '-password') // Popula o autor, omitindo a senha
+            .populate('comments.author', '-password') // Popula os autores dos comentários, omitindo a senha
+            .sort({ createdAt: -1 }); // Ordena os posts pela data de criação (mais recentes primeiro)
+
+        console.log(posts.length);
+
+        if (posts.length === 0) {
+            return res.status(404).json({ message: 'Nenhum post encontrado para este usuário.' });
+        }
+
+        res.status(200).json(posts); // Retorna os posts encontrados
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 

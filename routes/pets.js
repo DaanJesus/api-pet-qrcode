@@ -24,9 +24,48 @@ router.post('/register', authenticateToken, async (req, res) => {
         await pet.save();
 
         const populatedPet = await Pet.findById(pet._id).populate('mentor', '-password');
-        
+
         res.status(201).json(populatedPet);
 
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.put('/update', authenticateToken, async (req, res) => {
+    try {
+        const { _id } = req.body
+        
+        // Busca o pet pelo ID e atualiza os dados
+        const pet = await Pet.findByIdAndUpdate(_id, req.body, { new: true });
+
+        // Verifica se o pet foi encontrado
+        if (!pet) {
+            return res.status(404).json({ error: 'Pet not found' });
+        }
+
+        // Popula os dados do mentor, excluindo a senha
+        const populatedPet = await Pet.findById(pet._id).populate('mentor', '-password');
+
+        res.status(200).json(populatedPet);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.delete('/delete/:id', authenticateToken, async (req, res) => {
+    try {
+        const petId = req.params.id;
+
+        // Tenta encontrar e excluir o pet pelo ID
+        const deletedPet = await Pet.findByIdAndDelete(petId);
+
+        // Verifica se o pet foi encontrado e excluído
+        if (!deletedPet) {
+            return res.status(404).json({ error: 'Pet not found' });
+        }
+
+        res.status(200).json({ message: 'Pet deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
